@@ -14,8 +14,8 @@ int rMeter = 80;                      // length of needle animation or arch of n
 const int sampleWindow = 15;          // sample window width in mS (50 mS = 20Hz)
 unsigned int sample1;
 unsigned int sample2;
-float PeakRight = 80;                             // start needle fall max to min on start
-  float PeakLeft = 80;                             // start needle fall max to min on start
+float PeakRight = 0;                             // start needle fall max to min on start
+  float PeakLeft = 0;                             // start needle fall max to min on start
   float fallTimeRight;          // needle fallspeed
   float fallTimeLeft;          // needle fallspeed
   float riseTimeRight;          // needle fallspeed
@@ -231,6 +231,12 @@ void loop(void) {
   MeterValue2 = MeterValue2 - 34;
   u8g2.clearBuffer();                   //clear the internal memory
   memcpy_P(u8g2.getBufferPtr(),test4, 2048);
+  if(MeterValue1 > 40){
+    MeterValue1 = 40;
+  }
+  if(MeterValue2 > 40){
+    MeterValue2 = 40;
+  }
   int al1 = (hMeter1 + (sin(MeterValue1 / 57.296) * rMeter)); // meter needle horizontal coordinate
   int al2 = (vMeter - (cos(MeterValue1 / 57.296) * rMeter)); // meter needle vertical coordinate
   int ar1 = (hMeter2 + (sin(MeterValue2 / 57.296) * rMeter)); // meter needle horizontal coordinate

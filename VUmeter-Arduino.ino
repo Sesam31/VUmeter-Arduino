@@ -1,11 +1,11 @@
-#include <Arduino.h>
+//#include <Arduino.h>
 #include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
-U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(U8G2_R0, /* cs=*/ 10, /* dc=*/ 9, /* reset=*/ 8);  // Enable U8G2_16BIT in u8g2.h
+U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI u8g2(U8G2_R0, /* cs=*/2 , /* dc=*/ 0, /* reset=*/ 33);  // Enable U8G2_16BIT in u8g2.h
 
-int analogInputL = A0;                 // analog input for outside audio source
-int analogInputR = A2;
+int analogInputL = 36;                 // analog input for outside audio source
+int analogInputR = 39;
 int hMeter1 = 65;                      // horizontal center for needle animation
 int hMeter2 = 193;                      // horizontal center for needle animation
 int vMeter = 85;                      // vertical center for needle animation (outside of dislay limits)
@@ -20,6 +20,7 @@ float PeakRight = 0;                             // start needle fall max to min
   float fallTimeLeft;          // needle fallspeed
   float riseTimeRight;          // needle fallspeed
   float riseTimeLeft;          // needle fallspeed
+  int lastsignal;
 
 const uint8_t test4[] PROGMEM = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x10, 
@@ -164,7 +165,7 @@ void setup(void) {
   pinMode(analogInputR, INPUT);
   u8g2.begin();
   u8g2.setBusClock(8000000); //8MHz SPI
-  //Serial.begin(9200);
+  Serial.begin(9200);
 }
 
 void loop(void) {
@@ -208,20 +209,19 @@ void loop(void) {
 
   PeaktoPeak1 = SignalMax1 - SignalMin1;                      // max - min = peak-peak amplitude
   PeaktoPeak2 = SignalMax2 - SignalMin2;                      // max - min = peak-peak amplitude
-  Serial.println("start");
-  Serial.println(PeakLeft);
+  
   if (PeaktoPeak1 > PeakLeft){
-    riseTimeLeft=((PeaktoPeak1-PeakLeft)/10);
+    riseTimeLeft=((PeaktoPeak1-PeakLeft)/13);
     PeakLeft = PeakLeft+riseTimeLeft;
   }else if(PeaktoPeak1 <= PeakLeft){
-    fallTimeLeft = ((PeakLeft - PeaktoPeak1) / 15);
+    fallTimeLeft = ((PeakLeft - PeaktoPeak1) / 18);
     PeakLeft = PeakLeft-fallTimeLeft;
   }
   if (PeaktoPeak2 > PeakRight){
-    riseTimeRight=((PeaktoPeak2-PeakRight)/10);
+    riseTimeRight=((PeaktoPeak2-PeakRight)/13);
     PeakRight = PeakRight+riseTimeRight;
   }else if(PeaktoPeak2 <= PeakRight){
-    fallTimeRight = ((PeakRight - PeaktoPeak2) / 15);
+    fallTimeRight = ((PeakRight - PeaktoPeak2) / 18);
     PeakRight = PeakRight-fallTimeRight;
   }
 
@@ -229,8 +229,11 @@ void loop(void) {
   float MeterValue2 = PeakRight;              // convert volts to arrow information sensitivity 
   MeterValue1 = MeterValue1 - 34;
   MeterValue2 = MeterValue2 - 34;
+  Serial.println("start");
+  Serial.println(MeterValue1);
+  Serial.println(MeterValue2);
   u8g2.clearBuffer();                   //clear the internal memory
-  memcpy_P(u8g2.getBufferPtr(),test4, 2048);
+  
   if(MeterValue1 > 40){
     MeterValue1 = 40;
   }
@@ -241,9 +244,16 @@ void loop(void) {
   int al2 = (vMeter - (cos(MeterValue1 / 57.296) * rMeter)); // meter needle vertical coordinate
   int ar1 = (hMeter2 + (sin(MeterValue2 / 57.296) * rMeter)); // meter needle horizontal coordinate
   int ar2 = (vMeter - (cos(MeterValue2 / 57.296) * rMeter)); // meter needle vertical coordinate
-  u8g2.drawLine(al1, al2, hMeter1-2, vMeter);         // draws needle
-  u8g2.drawLine(al1, al2, hMeter1+2, vMeter);         // draws needle
-  u8g2.drawLine(ar1, ar2, hMeter2-2, vMeter);         // draws needle
-  u8g2.drawLine(ar1, ar2, hMeter2+2, vMeter);         // draws needle
+  if(MeterValue1 != -34 && MeterValue2 != -34){
+    lastsignal = millis();
+  }
+  if(millis()-lastsignal < 300000){
+    memcpy_P(u8g2.getBufferPtr(),test4, 2048);
+    u8g2.drawLine(al1, al2, hMeter1-2, vMeter);         // draws needle
+    u8g2.drawLine(al1, al2, hMeter1+2, vMeter);         // draws needle
+    u8g2.drawLine(ar1, ar2, hMeter2-2, vMeter);         // draws needle
+    u8g2.drawLine(ar1, ar2, hMeter2+2, vMeter);         // draws needle
+    
+  }
   u8g2.sendBuffer();
 }
